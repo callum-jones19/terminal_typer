@@ -6,6 +6,7 @@ use crossterm::{
     style::Color,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
+use lipsum::lipsum;
 use ratatui::{
     backend::{Backend, CrosstermBackend},
     layout::{Alignment, Constraint, Direction, Layout},
@@ -45,6 +46,21 @@ impl GameString {
             game_string: res,
             curr_index: 0,
         }
+    }
+
+    pub fn percentage_correct(&self) -> i32 {
+        let mut res = 0;
+        for i in 0..self.curr_index {
+            match self.game_string[i].given_char {
+                Some(typed) => {
+                    if typed == self.game_string[i].expected_char {
+                        res += 1;
+                    }
+                }
+                None => {}
+            }
+        }
+        let fraction = res / (self.game_string.len() as i32)
     }
 
     pub fn status_at_index(&self, index: usize) -> CharStatus {
@@ -127,7 +143,10 @@ fn ui<B: Backend>(f: &mut Frame<B>, game: &mut Game) {
         .wrap(Wrap { trim: true });
     f.render_widget(prompt_box, chunks[0]);
 
-    let block2 = Block::default().title("Stats").borders(Borders::ALL);
+    let accuracy = format!("Word Accuracy: {}", game.text.percentage_correct());
+    let block2 = Paragraph::new(accuracy)
+        .block(Block::default().title("Stats").borders(Borders::ALL))
+        .style(Style::default());
     f.render_widget(block2, chunks[1]);
 }
 
@@ -138,7 +157,8 @@ fn main() -> Result<(), io::Error> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    let target_str = String::from("This is the string we have to try to type. Good luck!");
+    // let target_str = String::from("This is the string we have to try to type. Good luck!");
+    let target_str = lipsum(100);
     let mut game = Game::new(target_str, 100);
 
     loop {
