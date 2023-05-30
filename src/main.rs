@@ -1,4 +1,4 @@
-use std::io;
+use std::{io, time::{Instant, Duration}};
 
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
@@ -9,7 +9,7 @@ use crossterm::{
 use lipsum::lipsum;
 use ratatui::{
     backend::{Backend, CrosstermBackend},
-    layout::{Alignment, Constraint, Direction, Layout},
+    layout::{Alignment, Constraint, Direction, Layout, Margin},
     style::{Modifier, Style},
     text::{Span, Spans},
     widgets::{Block, Borders, Paragraph, Wrap},
@@ -48,7 +48,7 @@ impl GameString {
         }
     }
 
-    pub fn percentage_correct(&self) -> i32 {
+    pub fn percentage_correct(&self) -> f32 {
         let mut res = 0;
         for i in 0..self.curr_index {
             match self.game_string[i].given_char {
@@ -60,7 +60,13 @@ impl GameString {
                 None => {}
             }
         }
-        let fraction = res / (self.game_string.len() as i32)
+        let divisor = self.curr_index;
+        if divisor == 0 {
+            0.0
+        } else {
+            let fraction = (res as f32) / (divisor as f32);
+            (fraction * 100.0).round() as f32
+        }
     }
 
     pub fn status_at_index(&self, index: usize) -> CharStatus {
@@ -97,7 +103,7 @@ impl GameString {
 
 struct Game {
     time_limit: i32,
-    curr_timer: i32,
+    start_time: Instant,
     text: GameString,
 }
 
@@ -105,9 +111,13 @@ impl Game {
     pub fn new(target_str: String, time_lmt: i32) -> Self {
         Game {
             time_limit: time_lmt,
-            curr_timer: 0,
+            start_time: Instant::now(),
             text: GameString::from(target_str),
         }
+    }
+
+    pub fn elapsed_time(&self) -> Duration {
+        self.start_time.elapsed()
     }
 }
 
@@ -126,12 +136,21 @@ fn ui<B: Backend>(f: &mut Frame<B>, game: &mut Game) {
             CharStatus::Incorrect => Style::default().fg(ratatui::style::Color::Red),
             CharStatus::Empty => Style::default().fg(ratatui::style::Color::Gray),
         };
+
+        // TODO abstract this functionality into the class. Fine here for now.
         let rendered_char = match game.text.game_string[i].given_char {
-            Some(c) => c,
+            Some(c) => {
+                if c != ' ' {
+                    c
+                } else {
+                    '·'
+                }
+            },
             None => game.text.game_string[i].expected_char,
         };
         rendered_text.push(Span::styled(rendered_char.to_string(), style));
     }
+    
     let prompt_box = Paragraph::new(Spans::from(rendered_text))
         .block(Block::default().title("Prompt").borders(Borders::ALL))
         .style(
@@ -139,11 +158,11 @@ fn ui<B: Backend>(f: &mut Frame<B>, game: &mut Game) {
                 .fg(ratatui::style::Color::White)
                 .bg(ratatui::style::Color::Black),
         )
-        .alignment(Alignment::Center)
-        .wrap(Wrap { trim: true });
+        .wrap(Wrap { trim: true })
+        .alignment(Alignment::Center);
     f.render_widget(prompt_box, chunks[0]);
 
-    let accuracy = format!("Word Accuracy: {}", game.text.percentage_correct());
+    let accuracy = format!("Word Accuracy: {}% \t \t Time Elapsed: {:?}", game.text.percentage_correct(), game.elapsed_time());
     let block2 = Paragraph::new(accuracy)
         .block(Block::default().title("Stats").borders(Borders::ALL))
         .style(Style::default());
