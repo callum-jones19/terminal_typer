@@ -8,4 +8,5 @@ edition = "2021"
 [dependencies]
 crossterm = "0.26.1"
 lipsum = "0.9.0"
+rand = "0.8.5"
 ratatui = "0.21.0"

@@ -1,5 +1,6 @@
 use crossterm::event::{KeyCode, KeyEvent};
-use lipsum::lipsum;
+use lipsum::lipsum_words_with_rng;
+use rand::thread_rng;
 use std::time::{Duration, Instant};
 
 #[derive(Clone)]
@@ -75,13 +76,10 @@ impl GameString {
     pub fn percentage_correct(&self) -> f32 {
         let mut res = 0;
         for i in 0..self.curr_index {
-            match self.game_string[i].given_char {
-                Some(typed) => {
-                    if typed == self.game_string[i].expected_char {
-                        res += 1;
-                    }
+            if let Some(typed) = self.game_string[i].given_char {
+                if typed == self.game_string[i].expected_char {
+                    res += 1;
                 }
-                None => {}
             }
         }
         let divisor = self.curr_index;
@@ -89,7 +87,7 @@ impl GameString {
             0.0
         } else {
             let fraction = (res as f32) / (divisor as f32);
-            (fraction * 100.0).round() as f32
+            (fraction * 100.0).round()
         }
     }
 
@@ -211,9 +209,8 @@ impl Game {
 
     pub fn handle_input(&mut self, key: KeyEvent) -> bool {
         // Check for exit
-        match key.code {
-            KeyCode::Esc => return true,
-            _ => {}
+        if key.code == KeyCode::Esc {
+            return true
         }
 
         // Handle controls through the round state.
@@ -221,11 +218,11 @@ impl Game {
         match &mut self.status {
             GameStatus::Waiting => {
                 // Enter the letter given and start the game
-                match key.code {
-                    KeyCode::Enter => {
-                        self.status = GameStatus::Ongoing(Round::new(lipsum(5)));
-                    }
-                    _ => {}
+                if key.code == KeyCode::Enter {
+                    self.status = GameStatus::Ongoing(Round::new(lipsum_words_with_rng(
+                        thread_rng(),
+                        20,
+                    )));
                 }
             }
             GameStatus::Ongoing(round) => {
@@ -234,21 +231,18 @@ impl Game {
                     finished_round = Some(round.clone());
                 }
             }
-            GameStatus::Complete => match key.code {
-                KeyCode::Enter => {
-                    self.status = GameStatus::Ongoing(Round::new(lipsum(10)));
+            GameStatus::Complete => {
+                if key.code == KeyCode::Enter {
+                    self.status =
+                        GameStatus::Ongoing(Round::new(lipsum_words_with_rng(thread_rng(), 10)));
                 }
-                _ => {}
             },
         }
 
         // Update GameState if necessary
-        match finished_round {
-            Some(round) => {
-                self.status = GameStatus::Complete;
-                self.record.push(round);
-            }
-            None => {}
+        if let Some(round) = finished_round {
+            self.status = GameStatus::Complete;
+            self.record.push(round);
         }
 
         false
