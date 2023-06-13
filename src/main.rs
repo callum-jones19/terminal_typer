@@ -57,6 +57,26 @@ impl GameString {
         self.curr_index == self.game_string.len()
     }
 
+    pub fn words_completed(&self) -> i32 {
+        // TODO more efficient if we store this data in the struct and
+        // update dynamically as we go.
+        let mut words = 0;
+        for (index, c) in self.game_string.iter().enumerate() {
+            match c.given_char {
+                Some(_) => {
+                    if index % 5 == 0 {
+                        words += 1;
+                    }
+                }
+                None => {
+                    break;
+                }
+            }
+        }
+
+        words
+    }
+
     pub fn percentage_correct(&self) -> f32 {
         let mut res = 0;
         for i in 0..self.curr_index {
@@ -127,7 +147,15 @@ impl Round {
     }
 
     pub fn calculate_wpm(&self) -> i32 {
-        90
+        let end_time = match self.end_time {
+            Some(et) => et,
+            None => Instant::now(),
+        };
+        let time_diff = end_time.duration_since(self.start_time);
+        let time_diff_mins = time_diff.as_secs_f32() / 60.0;
+        let wpm = (self.text.words_completed() as f32) / time_diff_mins;
+
+        wpm.round() as i32
     }
 
     pub fn is_complete(&self) -> bool {
@@ -207,7 +235,7 @@ impl Game {
             }
             GameStatus::Complete => match key.code {
                 KeyCode::Enter => {
-                    self.status = GameStatus::Waiting;
+                    self.status = GameStatus::Ongoing(Round::new(lipsum(10)));
                 }
                 _ => {}
             },
@@ -236,8 +264,23 @@ fn ui<B: Backend>(f: &mut Frame<B>, game: &mut Game) {
     // let prompt_text = Span::raw(&game.target_phrase);
     match &game.status {
         GameStatus::Waiting => {
-            let waiting_msg = " 🏎️🏎️🏎️🏎️🏎️🏎️🏎️🏎️🏎️  ";
-            let title_box = Paragraph::new(Spans::from(waiting_msg))
+            // Splash screen :))
+            let lines = vec![
+                Line::from("________________________________    _____   .___  _______      _____   .____     "),
+                Line::from("\\__    ___/\\_   _____/\\______   \\  /     \\  |   | \\      \\    /  _  \\  |    |    "),
+                Line::from("   |    |    |    __)_  |       _/ /  \\ /  \\ |   | /   |   \\  /  /_\\  \\ |    |    "),
+                Line::from("   |    |    |        \\ |    |   \\/    Y    \\|   |/    |    \\/    |    \\|    |___ "),
+                Line::from("   |____|   /_______  / |____|_  /\\____|__  /|___|\\____|__  /\\____|__  /|_______ \\"),
+                Line::from("                    \\/         \\/         \\/              \\/         \\/         \\/"),
+                Line::from("________________.___.__________ _____________________                            "),
+                Line::from("\\__    ___/\\__  |   |\\______   \\\\_   _____/\\______   \\                           "),
+                Line::from("   |    |    /   |   | |     ___/ |    __)_  |       _/                           "),
+                Line::from("   |    |    \\____   | |    |     |        \\ |    |   \\                           "),
+                Line::from("   |____|    / ______| |____|    /_______  / |____|_  /                           "),
+                Line::from("             \\/                          \\/         \\/                            ")
+            ];
+
+            let title_box = Paragraph::new(lines)
                 .block(
                     Block::default()
                         .title(" 🏎️ Terminal Typer 🏎️ ")
@@ -252,7 +295,16 @@ fn ui<B: Backend>(f: &mut Frame<B>, game: &mut Game) {
                 .alignment(Alignment::Center);
             f.render_widget(title_box, chunks[0]);
 
-            let prompt_msg = " [Enter]: New Game \n [Esc]: Exit Game";
+            let prompt_msg = vec![
+                Line::from(Span::styled(
+                    "[Enter]: New Game",
+                    Style::default().fg(ratatui::style::Color::Yellow),
+                )),
+                Line::from(Span::styled(
+                    "  [Esc]: Exit Game",
+                    Style::default().fg(ratatui::style::Color::Yellow),
+                )),
+            ];
             let prompt_box = Paragraph::new(prompt_msg)
                 .block(Block::default().title(" Controls ").borders(Borders::ALL))
                 .style(
@@ -297,12 +349,18 @@ fn ui<B: Backend>(f: &mut Frame<B>, game: &mut Game) {
             f.render_widget(prompt_box, chunks[0]);
 
             let accuracy = format!(
-                "Word Accuracy: {}% \t \t Time Elapsed: {:?}",
+                "Word Accuracy: {}% \t \t Time Elapsed: {}.{}",
                 round.text.percentage_correct(),
-                game.elapsed_time()
+                game.elapsed_time().as_secs(),
+                game.elapsed_time().subsec_millis()
             );
             let block2 = Paragraph::new(accuracy)
-                .block(Block::default().title("Stats").borders(Borders::ALL))
+                .block(
+                    Block::default()
+                        .title("Stats")
+                        .borders(Borders::ALL)
+                        .style(Style::default().bg(ratatui::style::Color::Black)),
+                )
                 .style(Style::default());
             f.render_widget(block2, chunks[1]);
         }
