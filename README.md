@@ -3,6 +3,15 @@ Do you ever worry about how many words-per-minute you can type? Do you ever
 feel that going to a website to test this is too much effort. Or do you
 simply want to procrastinate from within the comfort of your own terminal?
 
+# Screenshots
+
+Typing out a short, test prompt.
+![typing_image](./resources/typing_example.png)
+
+The round-end screen
+![end_screen_example](./resources/end_screen_example.png)
+
+
 # Installation
 This application is still in early stages of development, and is not currently
 packaged in any repositories. To use it, simply build from source using
