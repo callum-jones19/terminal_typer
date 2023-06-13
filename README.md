@@ -2,6 +2,7 @@
 Do you ever worry about how many words-per-minute you can type? Do you ever
 feel that going to a website to test this is too much effort. Or do you
 simply want to procrastinate from within the comfort of your own terminal?
+Then `terminal_typer` is for you!
 
 # Screenshots
 
