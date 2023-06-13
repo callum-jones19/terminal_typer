@@ -26,7 +26,7 @@ fn main() -> Result<(), io::Error> {
         })?;
 
         if let Event::Key(key) = event::read()? {
-            if game.handle_input(key) == true {
+            if game.handle_input(key) {
                 break;
             }
         };
