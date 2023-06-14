@@ -23,16 +23,16 @@ pub fn draw<B: Backend>(f: &mut Frame<B>, game: &mut Game) {
             let lines = vec![
                 Line::from("________________________________    _____   .___  _______      _____   .____     "),
                 Line::from("\\__    ___/\\_   _____/\\______   \\  /     \\  |   | \\      \\    /  _  \\  |    |    "),
-                Line::from("   |    |    |    __)_  |       _/ /  \\ /  \\ |   | /   |   \\  /  /_\\  \\ |    |    "),
-                Line::from("   |    |    |        \\ |    |   \\/    Y    \\|   |/    |    \\/    |    \\|    |___ "),
-                Line::from("   |____|   /_______  / |____|_  /\\____|__  /|___|\\____|__  /\\____|__  /|_______ \\"),
-                Line::from("                    \\/         \\/         \\/              \\/         \\/         \\/"),
+                Line::from(".   |    |    |    __)_  |       _/ /  \\ /  \\ |   | /   |   \\  /  /_\\  \\ |    |    "),
+                Line::from(".   |    |    |        \\ |    |   \\/    Y    \\|   |/    |    \\/    |    \\|    |___ "),
+                Line::from(".   |____|   /_______  / |____|_  /\\____|__  /|___|\\____|__  /\\____|__  /|_______ \\"),
+                Line::from(".                    \\/         \\/         \\/              \\/         \\/         \\/"),
                 Line::from("________________.___.__________ _____________________                            "),
                 Line::from("\\__    ___/\\__  |   |\\______   \\\\_   _____/\\______   \\                           "),
-                Line::from("   |    |    /   |   | |     ___/ |    __)_  |       _/                           "),
-                Line::from("   |    |    \\____   | |    |     |        \\ |    |   \\                           "),
-                Line::from("   |____|    / ______| |____|    /_______  / |____|_  /                           "),
-                Line::from("             \\/                          \\/         \\/                            ")
+                Line::from(".   |    |    /   |   | |     ___/ |    __)_  |       _/                           "),
+                Line::from(".   |    |    \\____   | |    |     |        \\ |    |   \\                           "),
+                Line::from(".   |____|    / ______| |____|    /_______  / |____|_  /                           "),
+                Line::from(".             \\/                          \\/         \\/                            ")
             ];
 
             let title_box = Paragraph::new(lines)
@@ -72,6 +72,7 @@ pub fn draw<B: Backend>(f: &mut Frame<B>, game: &mut Game) {
         GameStatus::Ongoing(round) => {
             let mut rendered_text = Vec::new();
             for i in 0..round.text.len() {
+                // Assign style for character status
                 let style = match round.text.status_at_index(i) {
                     CharStatus::Correct => Style::default().fg(ratatui::style::Color::Green),
                     CharStatus::Incorrect => Style::default().fg(ratatui::style::Color::Red),
@@ -92,8 +93,14 @@ pub fn draw<B: Backend>(f: &mut Frame<B>, game: &mut Game) {
                 rendered_text.push(Span::styled(rendered_char.to_string(), style));
             }
 
-            let prompt_box = Paragraph::new(Line::from(rendered_text))
-                .block(Block::default().title(" Prompt ").borders(Borders::ALL))
+            let prompt_layout = Layout::default()
+                .direction(Direction::Vertical)
+                .margin(10)
+                .constraints([Constraint::Percentage(80)].as_ref())
+                .split(chunks[0]);
+            let prompt_block = Block::default().title(" Prompt ").borders(Borders::ALL).style(Style::default().fg(ratatui::style::Color::White).bg(ratatui::style::Color::Black));
+            f.render_widget(prompt_block, chunks[0]);
+            let prompt_para = Paragraph::new(Line::from(rendered_text))
                 .style(
                     Style::default()
                         .fg(ratatui::style::Color::White)
@@ -101,7 +108,7 @@ pub fn draw<B: Backend>(f: &mut Frame<B>, game: &mut Game) {
                 )
                 .wrap(Wrap { trim: true })
                 .alignment(Alignment::Center);
-            f.render_widget(prompt_box, chunks[0]);
+            f.render_widget(prompt_para, prompt_layout[0]);
 
             let accuracy = format!(
                 "Word Accuracy: {}% \t \t Time Elapsed: {}.{}",
@@ -109,6 +116,7 @@ pub fn draw<B: Backend>(f: &mut Frame<B>, game: &mut Game) {
                 game.elapsed_time().as_secs(),
                 game.elapsed_time().subsec_millis()
             );
+
             let block2 = Paragraph::new(accuracy)
                 .block(
                     Block::default()
@@ -139,11 +147,7 @@ pub fn draw<B: Backend>(f: &mut Frame<B>, game: &mut Game) {
                 lines.push(new_line);
             }
             let prompt_box = Paragraph::new(lines)
-                .block(
-                    Block::default()
-                        .title(" Leaderboard ")
-                        .borders(Borders::ALL),
-                )
+                .block(Block::default().title(" Summary ").borders(Borders::ALL))
                 .style(
                     Style::default()
                         .fg(ratatui::style::Color::White)
