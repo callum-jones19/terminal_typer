@@ -6,10 +6,10 @@ Then `terminal_typer` is for you!
 
 # Screenshots
 
-Typing out a short, test prompt.
+Typing out a short, test prompt:
 ![typing_image](./resources/typing_example.png)
 
-The round-end screen
+The round-end screen:
 ![end_screen_example](./resources/end_screen_example.png)
 
 
